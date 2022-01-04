@@ -1,5 +1,15 @@
 # TODO
 Look at TODOs in code
+* Implement subscriber that updates the local map .pgm file every # seconds
+* Translate relative point on pgm to coordinate frame
+* Image Selection Dot Code
+* Replace Default Images with Loading/Please Wait
+* Wrap up integration of all the controls
+* Fix text colors where needed
+* Draw a dot for strech on the map
+
+# Notes
+* Map image is called map.pgm and it is in the scripts folder of the project
 
 # Requirements
 ```shell

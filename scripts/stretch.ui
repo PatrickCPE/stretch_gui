@@ -523,7 +523,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>dummy_map.pgm</pixmap>
+       <pixmap>loading_icon.png</pixmap>
       </property>
       <property name="scaledContents">
        <bool>true</bool>
@@ -2241,7 +2241,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>dummy_image.pgm</pixmap>
+       <pixmap>loading_icon.png</pixmap>
       </property>
       <property name="scaledContents">
        <bool>true</bool>
@@ -5350,7 +5350,7 @@
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap>dummy_image.pgm</pixmap>
+       <pixmap>loading_icon.png</pixmap>
       </property>
       <property name="scaledContents">
        <bool>true</bool>
