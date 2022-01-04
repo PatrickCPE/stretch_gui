@@ -10,6 +10,8 @@ import rospy
 from geometry_msgs.msg import Point
 
 import cv2
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image
 
 from stretch_ui_main_window import Ui_StretchWindow
 
@@ -34,53 +36,56 @@ class MapWorker(QThread):
         self.thread_active = True
         while self.thread_active:
             # TODO Implement Zoom and Centering
-            cv_image = cv2.imread("dummy_image.pgm")
-            x_dim = cv_image.shape[1]
-            y_dim = cv_image.shape[0]
+            cv_image = cv2.imread("current_map.png")
+            if cv_image is not None:
+                x_dim = cv_image.shape[1]
+                y_dim = cv_image.shape[0]
 
-            # Check limits on self.center
-            if abs(self.center[0]) > round(x_dim / 2):
-                if self.center[0] > 0:
-                    self.center = (round(x_dim / 2), self.center[1])
-                else:
-                    self.center = (-round(x_dim / 2), self.center[1])
+                # Check limits on self.center
+                if abs(self.center[0]) > round(x_dim / 2):
+                    if self.center[0] > 0:
+                        self.center = (round(x_dim / 2), self.center[1])
+                    else:
+                        self.center = (-round(x_dim / 2), self.center[1])
 
-            if abs(self.center[1]) > round(y_dim / 2):
-                if self.center[1] > 0:
-                    self.center = (self.center[0], round(y_dim / 2))
-                else:
-                    self.center = (self.center[0], -round(y_dim / 2))
+                if abs(self.center[1]) > round(y_dim / 2):
+                    if self.center[1] > 0:
+                        self.center = (self.center[0], round(y_dim / 2))
+                    else:
+                        self.center = (self.center[0], -round(y_dim / 2))
 
-            rel_center = (round(x_dim / 2) + self.center[0], round(y_dim / 2) + self.center[1])
+                rel_center = (round(x_dim / 2) + self.center[0], round(y_dim / 2) + self.center[1])
 
-            x_limits = int(round(x_dim / 4))
-            y_limits = int(round(y_dim / 4))
+                x_limits = int(round(x_dim / 4))
+                y_limits = int(round(y_dim / 4))
 
-            x_region = [rel_center[0] - int(round((x_limits / 2 - 1))),
-                             rel_center[0] + int(round((x_limits / 2)))]
-            y_region = [rel_center[1] - int(round((y_limits / 2 - 1))),
-                             rel_center[1] + int(round((y_limits / 2)))]
+                x_region = [rel_center[0] - int(round((x_limits / 2 - 1))),
+                            rel_center[0] + int(round((x_limits / 2)))]
+                y_region = [rel_center[1] - int(round((y_limits / 2 - 1))),
+                            rel_center[1] + int(round((y_limits / 2)))]
 
-            if x_region[0] < 0:
-                x_region = [0, x_limits - 1]
-            elif x_region[1] > x_dim:
-                x_region = [(x_dim - x_limits - 1), x_dim]
+                if x_region[0] < 0:
+                    x_region = [0, x_limits - 1]
+                elif x_region[1] > x_dim:
+                    x_region = [(x_dim - x_limits - 1), x_dim]
 
-            if y_region[0] < 0:
-                y_region = [0, y_limits - 1]
-            elif y_region[1] > y_dim:
-                y_region = [y_dim - y_limits - 1, y_dim]
+                if y_region[0] < 0:
+                    y_region = [0, y_limits - 1]
+                elif y_region[1] > y_dim:
+                    y_region = [y_dim - y_limits - 1, y_dim]
 
-            cv_image = cv_image[y_region[0]:y_region[1], x_region[0]:x_region[1], :]
+                cv_image = cv_image[y_region[0]:y_region[1], x_region[0]:x_region[1], :]
 
-            cv_image = cv2.resize(cv_image, (x_dim, y_dim), interpolation=cv2.INTER_CUBIC)
-            image_zoom_filename = "map_zoomed.png"
-            cv2.imwrite(image_zoom_filename, cv_image)
-            # TODO
-            # TODO assign proper image file name for image we get from ROS
-            updated_map = QPixmap("map_zoomed.png")
-            self.map_update.emit(updated_map)
-            sleep(1)
+                cv_image = cv2.resize(cv_image, (x_dim, y_dim), interpolation=cv2.INTER_CUBIC)
+                image_zoom_filename = "map_zoomed.png"
+                cv2.imwrite(image_zoom_filename, cv_image)
+                updated_map = QPixmap("map_zoomed.png")
+                self.map_update.emit(updated_map)
+                sleep(0.1)
+            else:
+                print("No Map publishing yet")
+                # Longer sleep because I assume it won't be up for a bit
+                sleep(1)
 
     def stop(self):
         self.thread_active = False
@@ -110,7 +115,6 @@ class VideoWorker(QThread):
                 picture = converted_to_qt.scaled(960, 540, Qt.KeepAspectRatio)
                 self.image_update.emit(picture)
         global selected_x, selected_y
-        # TODO Delete
         self.image = cv2.circle(self.image, (selected_x, selected_y), 10, (0, 255, 0), -1)
         cv2.imwrite("image_zoomed.png", self.image)
         self.capture.release()
@@ -168,6 +172,7 @@ class MainWindow:
 
     def go_to_page_1(self):
         self.ui.PagesStackedWidget.setCurrentWidget(self.ui.page_1)
+        #self.ui.MapLabelPage1 = QPixmap("map_zoomed.png")
         self.map_worker.start()
         # TODO Update image source to proper names
         self.video_worker.stop()
@@ -216,7 +221,7 @@ class MainWindow:
         Inverted control scheme
         """
         # TODO Implement both sets of arrows properly
-        self.map_worker.center = (self.map_worker.center[0] + 100, self.map_worker.center[1])
+        self.map_worker.center = (self.map_worker.center[0] - 100, self.map_worker.center[1])
         print("page 1 left: current center={}".format(self.map_worker.center))
 
     def page_1_right(self):
@@ -224,7 +229,7 @@ class MainWindow:
         Inverted control scheme
         """
         # TODO Implement both sets of arrows properly
-        self.map_worker.center = (self.map_worker.center[0] - 100, self.map_worker.center[1])
+        self.map_worker.center = (self.map_worker.center[0] + 100, self.map_worker.center[1])
         print("page 1 right: current center={}".format(self.map_worker.center))
 
     def zoom_in(self):
@@ -264,7 +269,6 @@ class MainWindow:
     def page_2_right(self):
         # TODO Implement both sets of arrows properly
         print("page 2 right")
-
 
 if __name__ == "__main__":
     point_pub = rospy.Publisher("selected_point", Point, queue_size=10)
