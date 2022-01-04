@@ -35,7 +35,7 @@ class MapWorker(QThread):
     def run(self):
         self.thread_active = True
         while self.thread_active:
-            # TODO Implement Zoom and Centering
+            # TODO Implement Centering on Stretch at startup if desired (maybe startup at homebase?)
             cv_image = cv2.imread("current_map.png")
             if cv_image is not None:
                 x_dim = cv_image.shape[1]
@@ -111,7 +111,8 @@ class VideoWorker(QThread):
             ret, frame = self.capture.read()
             if ret:
                 self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                converted_to_qt = QImage(self.image.data, self.image.shape[1], self.image.shape[0], QImage.Format_RGB888)
+                converted_to_qt = QImage(self.image.data, self.image.shape[1], self.image.shape[0],
+                                         QImage.Format_RGB888)
                 picture = converted_to_qt.scaled(960, 540, Qt.KeepAspectRatio)
                 self.image_update.emit(picture)
         global selected_x, selected_y
@@ -155,10 +156,6 @@ class MainWindow:
         self.ui.RightButtonPage2.clicked.connect(self.page_2_right)
         self.ui.DownButtonPage2.clicked.connect(self.page_2_down)
 
-        # TODO Implement both zooms
-        self.ui.ZoomInButtonPage2.clicked.connect(self.zoom_in)
-        self.ui.ZoomOutButtonPage2.clicked.connect(self.zoom_out)
-
         self.ui.CameraLabelPage2.mousePressEvent = self.publish_point
 
         self.ui.YesButtonPage3.clicked.connect(self.go_to_page_1)
@@ -172,9 +169,8 @@ class MainWindow:
 
     def go_to_page_1(self):
         self.ui.PagesStackedWidget.setCurrentWidget(self.ui.page_1)
-        #self.ui.MapLabelPage1 = QPixmap("map_zoomed.png")
+        # self.ui.MapLabelPage1 = QPixmap("map_zoomed.png")
         self.map_worker.start()
-        # TODO Update image source to proper names
         self.video_worker.stop()
 
     def go_to_page_2(self):
@@ -192,7 +188,6 @@ class MainWindow:
         converted_to_qt = QImage(image.data, image.shape[1], image.shape[0], QImage.Format_RGB888)
         self.ui.SelectedImageLabelPage3.setPixmap(QPixmap(converted_to_qt))
         self.ui.PagesStackedWidget.setCurrentWidget(self.ui.page_3)
-        # TODO Add Selection to the image via opencv
 
     def video_frame_update(self, image):
         self.ui.CameraLabelPage2.setPixmap(QPixmap.fromImage(image))
@@ -204,7 +199,6 @@ class MainWindow:
         """
         Inverted control scheme
         """
-        # TODO Implement both sets of arrows properly
         self.map_worker.center = (self.map_worker.center[0], self.map_worker.center[1] - 100)
         print("page 1 up: current center={}".format(self.map_worker.center))
 
@@ -212,7 +206,6 @@ class MainWindow:
         """
         Inverted control scheme
         """
-        # TODO Implement both sets of arrows properly
         self.map_worker.center = (self.map_worker.center[0], self.map_worker.center[1] + 100)
         print("page 1 down: current center={}".format(self.map_worker.center))
 
@@ -220,7 +213,6 @@ class MainWindow:
         """
         Inverted control scheme
         """
-        # TODO Implement both sets of arrows properly
         self.map_worker.center = (self.map_worker.center[0] - 100, self.map_worker.center[1])
         print("page 1 left: current center={}".format(self.map_worker.center))
 
@@ -228,47 +220,35 @@ class MainWindow:
         """
         Inverted control scheme
         """
-        # TODO Implement both sets of arrows properly
         self.map_worker.center = (self.map_worker.center[0] + 100, self.map_worker.center[1])
         print("page 1 right: current center={}".format(self.map_worker.center))
 
-    def zoom_in(self):
-        # TODO Implement Zoom In
-        print("Zoom In Pressed")
-
-    def zoom_out(self):
-        # TODO Implement Zoom Out
-        print("Zoom Out Pressed")
-
     def publish_point(self, event):
-        # TODO Implement Relative Point Calc Based on Zoom
         global selected_x, selected_y
-        # TODO Make these relative
         # X Scaling 960:640
         # Y Scaling 540:480
         print("Result of round\nX:{} Y:{}".format(640.0 / 960.0, 480.0 / 540.0))
         selected_x = round(event.x() * 640.0 / 960.0)
         selected_y = round(event.y() * 480.0 / 540.0)
-        # TODO Delete
-        print("X:{} Y:{}".format(selected_x, selected_y))
         point_pub.publish(Point(event.x(), event.y(), 0))
         self.go_to_page_3()
 
     def page_2_up(self):
-        # TODO Implement both sets of arrows properly
+        # TODO Bind to Camera Driver
         print("page 2 up")
 
     def page_2_down(self):
-        # TODO Implement both sets of arrows properly
+        # TODO Bind to Camera Driver
         print("page 2 down")
 
     def page_2_left(self):
-        # TODO Implement both sets of arrows properly
+        # TODO Bind to Camera Driver
         print("page 2 left")
 
     def page_2_right(self):
-        # TODO Implement both sets of arrows properly
+        # TODO Bind to Camera Driver
         print("page 2 right")
+
 
 if __name__ == "__main__":
     point_pub = rospy.Publisher("selected_point", Point, queue_size=10)
